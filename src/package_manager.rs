@@ -30,9 +30,12 @@
 // IN THE SOFTWARE.
 ////
 
+use std::convert::From;
 use std::error::Error;
 use std::fmt;
-use std::path::PathBuf;
+use std::io;
+use std::path::{Path, PathBuf};
+use std::str;
 
 use serde::{Serialize, Deserialize};
 
@@ -44,7 +47,9 @@ pub enum PackageManagerName {
 }
 
 pub trait PackageManager {
-    fn build(&self, name: &str) -> Result<PathBuf, PackageError>;
+    fn build(&self, name: &Path) -> Result<PathBuf, PackageError>;
+    fn deploy(&self, package: &Path, repository: &Path) ->
+        Result<(), PackageError>;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -57,8 +62,14 @@ pub struct PackageError {
 }
 
 impl Error for PackageError {}
-impl PackageError {
-    pub fn new(details: String) -> Self {
+impl From<&str> for PackageError {
+    fn from(value: &str) -> Self {
+        PackageError { details: value.to_string() }
+    }
+}
+
+impl From<String> for PackageError {
+    fn from(details: String) -> Self {
         PackageError { details }
     }
 }
@@ -66,6 +77,18 @@ impl PackageError {
 impl fmt::Display for PackageError {
     fn fmt(&self, writer: &mut fmt::Formatter) -> fmt::Result {
         write!(writer, "{}", &self.details)
+    }
+}
+
+impl From<io::Error> for PackageError {
+    fn from(value: io::Error) -> Self {
+        PackageError { details: value.to_string() }
+    }
+}
+
+impl From<str::Utf8Error> for PackageError {
+    fn from(value: str::Utf8Error) -> Self {
+        PackageError { details: value.to_string() }
     }
 }
 

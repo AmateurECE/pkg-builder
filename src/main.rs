@@ -33,6 +33,8 @@
 use std::error::Error;
 use std::io;
 use std::fs;
+use std::ffi::OsStr;
+use std::path::PathBuf;
 use clap::Parser;
 use serde_yaml;
 
@@ -41,47 +43,47 @@ mod configuration;
 
 use package_manager::{PackageManagerName, PackageManager, pacman};
 
+const CONF_FILE: &'static str = "pkg-builder.yaml";
+
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
     /// Configuration file
-    #[clap(short, long)]
-    config: Option<String>,
+    #[clap(short, long, default_value_t = CONF_FILE.to_string())]
+    config: String,
+
+    repository: String,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
-    let configuration_file = args.config.unwrap_or(
-        "pkg-builder.yaml".to_string());
-
-    let configuration: configuration::BuilderConfiguration =
+    let config: configuration::BuilderConfiguration =
         serde_yaml::from_reader(io::BufReader::new(fs::File::open(
-            configuration_file)?))?;
+            args.config)?))?;
 
-    let packager: Box<dyn PackageManager> = match configuration.package_manager
-    {
+    let packager: Box<dyn PackageManager> = match config.package_manager {
         PackageManagerName::Pacman => Box::new(pacman::Pacman::new()),
     };
 
-    for package in fs::read_dir(".")?.into_iter() {
-        let package = package?;
-        if !package.file_type()?.is_dir() {
-            continue
-        }
+    let git = OsStr::new(".git");
+    let repository_path = PathBuf::from(&args.repository);
+    fs::read_dir(".")?.into_iter()
+        // Collect ReadDir into trappable Vec, then back to iter
+        .collect::<io::Result<Vec<fs::DirEntry>>>()?.into_iter()
 
-        let path = package.path();
-        let base_name = path.file_name().unwrap().to_str().unwrap();
-        if base_name == ".git" {
-            continue
-        }
+        // Get the path of each entry
+        .map(|entry| entry.path())
 
-        println!("Packaging {}", base_name);
-        if let Err(error) = packager.as_ref().build(&base_name) {
-            println!("{}", error.to_string())
-        }
-    }
+        // Filter only directories not named ".git"
+        .filter(|entry| entry.is_dir() && entry.file_name() != Some(&git))
 
-    Ok(())
+        // Build packages and collect file paths of binary packages
+        .filter_map(|entry| packager.as_ref().build(&entry).ok())
+
+        // Deploy the packages that were built successfully
+        .map(|package| packager.as_ref().deploy(&package, &repository_path))
+        .collect::<Result<(), _>>()
+        .map_err(|e| e.into())
 }
 
 ///////////////////////////////////////////////////////////////////////////////
