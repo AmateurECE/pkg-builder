@@ -7,7 +7,7 @@
 //
 // CREATED:         02/26/2022
 //
-// LAST EDITED:     02/26/2022
+// LAST EDITED:     05/30/2022
 //
 // Copyright 2022, Ethan D. Twardy
 //
@@ -58,8 +58,9 @@ impl Pacman {
 impl PackageManager for Pacman {
     fn build(&self, name: &Path) -> Result<PathBuf, PackageError>
     {
+        println!("makepkg");
         let makepkg = Command::new("makepkg")
-            .args(["-sic"])
+            .args(["-sc"])
             .current_dir(name)
             .output()?;
         if !makepkg.status.success() {

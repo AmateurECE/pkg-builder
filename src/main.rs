@@ -52,7 +52,11 @@ struct Args {
     #[clap(short, long, default_value_t = CONF_FILE.to_string())]
     config: String,
 
+    /// Path to repository
     repository: String,
+
+    /// A single package
+    package: Option<String>
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -68,23 +72,33 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let git = OsStr::new(".git");
     let repository_path = PathBuf::from(&args.repository);
-    fs::read_dir(".")?.into_iter()
-        // Collect ReadDir into trappable Vec, then back to iter
-        .collect::<io::Result<Vec<fs::DirEntry>>>()?.into_iter()
+    if let Some(package) = args.package {
+        // If we've been instructed just to build one package
+        let package = PathBuf::from(package);
+        let binary = packager.as_ref().build(&package)?;
+        packager.as_ref().deploy(&binary, &repository_path)
+            .map_err(|e| e.into())
+    } else {
+        // If we've been instructed to build all the packages
+        fs::read_dir(".")?.into_iter()
+            // Collect ReadDir into trappable Vec, then back to iter
+            .collect::<io::Result<Vec<fs::DirEntry>>>()?.into_iter()
 
-        // Get the path of each entry
-        .map(|entry| entry.path())
+            // Get the path of each entry
+            .map(|entry| entry.path())
 
-        // Filter only directories not named ".git"
-        .filter(|entry| entry.is_dir() && entry.file_name() != Some(&git))
+            // Filter only directories not named ".git"
+            .filter(|entry| entry.is_dir() && entry.file_name() != Some(&git))
 
-        // Build packages and collect file paths of binary packages
-        .filter_map(|entry| packager.as_ref().build(&entry).ok())
+            // Build packages and collect file paths of binary packages
+            .filter_map(|entry| packager.as_ref().build(&entry).ok())
 
-        // Deploy the packages that were built successfully
-        .map(|package| packager.as_ref().deploy(&package, &repository_path))
-        .collect::<Result<(), _>>()
-        .map_err(|e| e.into())
+            // Deploy the packages that were built successfully
+            .map(|package| packager.as_ref()
+                 .deploy(&package, &repository_path))
+            .collect::<Result<(), _>>()
+            .map_err(|e| e.into())
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
