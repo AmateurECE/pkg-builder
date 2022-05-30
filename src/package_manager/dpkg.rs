@@ -1,11 +1,11 @@
 ///////////////////////////////////////////////////////////////////////////////
-// NAME:            package_manager.rs
+// NAME:            dpkg.rs
 //
 // AUTHOR:          Ethan D. Twardy <ethan.twardy@gmail.com>
 //
-// DESCRIPTION:     Logic for uniquely handling different package managers.
+// DESCRIPTION:     Logic for handling dpkg packages.
 //
-// CREATED:         02/26/2022
+// CREATED:         05/30/2022
 //
 // LAST EDITED:     05/30/2022
 //
@@ -30,67 +30,30 @@
 // IN THE SOFTWARE.
 ////
 
-use std::convert::From;
-use std::error::Error;
-use std::fmt;
-use std::io;
 use std::path::{Path, PathBuf};
-use std::str;
+use crate::package_manager::{PackageManager, PackageError};
 
-use serde::{Serialize, Deserialize};
+pub struct Dpkg;
 
-pub mod dpkg;
-pub mod pacman;
+impl Dpkg {
+    pub fn new() -> Self {
+        Self
+    }
 
-#[derive(Serialize, Deserialize)]
-pub enum PackageManagerName {
-    Dpkg,
-    Pacman,
+    fn source(&self) -> Result<(), PackageError> {
+        todo!()
+    }
 }
 
-pub trait PackageManager {
-    fn build(&self, name: &Path) -> Result<PathBuf, PackageError>;
+impl PackageManager for Dpkg {
+    fn build(&self, name: &Path) -> Result<PathBuf, PackageError> {
+        todo!()
+    }
+
     fn deploy(&self, package: &Path, repository: &Path) ->
-        Result<(), PackageError>;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// PackageError
-////
-
-#[derive(Debug)]
-pub struct PackageError {
-    details: String,
-}
-
-impl Error for PackageError {}
-impl From<&str> for PackageError {
-    fn from(value: &str) -> Self {
-        PackageError { details: value.to_string() }
-    }
-}
-
-impl From<String> for PackageError {
-    fn from(details: String) -> Self {
-        PackageError { details }
-    }
-}
-
-impl fmt::Display for PackageError {
-    fn fmt(&self, writer: &mut fmt::Formatter) -> fmt::Result {
-        write!(writer, "{}", &self.details)
-    }
-}
-
-impl From<io::Error> for PackageError {
-    fn from(value: io::Error) -> Self {
-        PackageError { details: value.to_string() }
-    }
-}
-
-impl From<str::Utf8Error> for PackageError {
-    fn from(value: str::Utf8Error) -> Self {
-        PackageError { details: value.to_string() }
+        Result<(), PackageError>
+    {
+        todo!()
     }
 }
 

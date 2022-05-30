@@ -7,7 +7,7 @@
 //
 // CREATED:         02/26/2022
 //
-// LAST EDITED:     02/26/2022
+// LAST EDITED:     05/30/2022
 //
 // Copyright 2022, Ethan D. Twardy
 //
@@ -35,8 +35,8 @@ use serde::{Serialize, Deserialize};
 use crate::package_manager::PackageManagerName;
 
 #[derive(Serialize, Deserialize)]
-pub enum PackageOverride {
-    SourceUrl(String),
+pub struct PackageOverride {
+    tag_prefix: String,
 }
 
 #[derive(Serialize, Deserialize)]

@@ -7,7 +7,7 @@
 //
 // CREATED:         02/26/2022
 //
-// LAST EDITED:     02/26/2022
+// LAST EDITED:     05/30/2022
 //
 // Copyright 2022, Ethan D. Twardy
 //
@@ -41,7 +41,7 @@ use serde_yaml;
 mod package_manager;
 mod configuration;
 
-use package_manager::{PackageManagerName, PackageManager, pacman};
+use package_manager::{PackageManagerName, PackageManager, pacman, dpkg};
 
 const CONF_FILE: &'static str = "pkg-builder.yaml";
 
@@ -63,6 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let packager: Box<dyn PackageManager> = match config.package_manager {
         PackageManagerName::Pacman => Box::new(pacman::Pacman::new()),
+        PackageManagerName::Dpkg => Box::new(dpkg::Dpkg::new()),
     };
 
     let git = OsStr::new(".git");
