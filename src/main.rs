@@ -7,7 +7,7 @@
 //
 // CREATED:         02/26/2022
 //
-// LAST EDITED:     05/30/2022
+// LAST EDITED:     06/11/2022
 //
 // Copyright 2022, Ethan D. Twardy
 //
@@ -91,11 +91,17 @@ fn main() -> Result<(), Box<dyn Error>> {
             .filter(|entry| entry.is_dir() && entry.file_name() != Some(&git))
 
             // Build packages and collect file paths of binary packages
-            .filter_map(|entry| packager.as_ref().build(&entry).ok())
+            .filter_map(|entry| {
+                println!("Building {}", &entry.display());
+                packager.as_ref().build(&entry).ok()
+            })
 
             // Deploy the packages that were built successfully
-            .map(|package| packager.as_ref()
-                 .deploy(&package, &repository_path))
+            .map(|package| {
+                println!("Deploying '{}' to {}", &package.display(),
+                         &repository_path.display());
+                packager.as_ref().deploy(&package, &repository_path)
+            })
             .collect::<Result<(), _>>()
             .map_err(|e| e.into())
     }

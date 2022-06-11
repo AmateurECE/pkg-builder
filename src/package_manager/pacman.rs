@@ -7,7 +7,7 @@
 //
 // CREATED:         02/26/2022
 //
-// LAST EDITED:     05/30/2022
+// LAST EDITED:     06/11/2022
 //
 // Copyright 2022, Ethan D. Twardy
 //
@@ -58,13 +58,12 @@ impl Pacman {
 impl PackageManager for Pacman {
     fn build(&self, name: &Path) -> Result<PathBuf, PackageError>
     {
-        println!("makepkg");
         let makepkg = Command::new("makepkg")
             .args(["-sc"])
             .current_dir(name)
-            .output()?;
-        if !makepkg.status.success() {
-            return Err(PackageError::from(str::from_utf8(&makepkg.stderr)?))
+            .status()?;
+        if !makepkg.success() {
+            return Err(PackageError::from("Failed to executed makepkg"))
         }
 
         self.get_file(name, "zst")?.ok_or(PackageError::from(
@@ -80,14 +79,21 @@ impl PackageManager for Pacman {
 
         // Copy package file to repository
         let deployed_package_path = repository_path.to_owned().join(package);
-        fs::copy(package, &deployed_package_path)?;
+        fs::create_dir_all(deployed_package_path.parent().unwrap())
+            .expect(&format!(
+                "Couldn't create directory {}!",
+                &deployed_package_path.parent().unwrap().display()));
+        fs::copy(package, &deployed_package_path)
+            .expect(&format!(
+                "Couldn't copy {} to {}!", &package.display(),
+                &deployed_package_path.display()));
 
         // Add package to repository file
         let repo_add = Command::new("repo-add")
             .args([&repository, deployed_package_path.as_path()])
-            .output()?;
-        if !repo_add.status.success() {
-            return Err(PackageError::from(str::from_utf8(&repo_add.stderr)?))
+            .status()?;
+        if !repo_add.success() {
+            return Err(PackageError::from("Failed to deploy"))
         }
         Ok(())
     }
